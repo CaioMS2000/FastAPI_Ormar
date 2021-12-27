@@ -7,6 +7,8 @@ from datetime import datetime
 
 import sql_app.crud as crud
 import sql_app.models as model
+import sql_app.schemas as schema
+import sql_app.database as database
 
 
 #source ./venv/bin/activate && uvicorn main:app --reload
@@ -30,69 +32,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+app.state.database = database.database
+
+@app.on_event("startup")
+async def startup() -> None:
+    database_ = app.state.database
+    if not database_.is_connected:
+        await database_.connect()
 
 
-def read_user_by_nick(user_nick: str, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_nick(db, nick = user_nick)
-    if db_user is None:
-        raise HTTPException(status_code = 404, detail = "User nick not found")
-    return db_user
-
-
-def read_user_by_id(user_id: int, db: Session = Depends(get_db)):
-    db_user = crud.get_user(db, user_id = user_id)
-    if db_user is None:
-        raise HTTPException(status_code = 404, detail = "User id not found")
-    return db_user
-
-
-# def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-#     users = crud.get_users(db, skip=skip, limit=limit)
-#     return users
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    database_ = app.state.database
+    if database_.is_connected:
+        await database_.disconnect()
 
 
 @app.post("/users/", response_model=schema.User)
-def create_user(user: schema.User, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_nick(db, nick = user.nickname)
+def create_user(user: schema.User):
+    db_user = crud.get_user_by_nick(nick = user.nickname)
     if db_user:
         raise HTTPException(status_code=400, detail="Nick already registered")
-    return crud.create_user(db=db, user=schema.User(nickname = user.nickname, password = user.password))
+    return crud.create_user(user=schema.User(nickname = user.nickname, password = user.password))
 
 
 @app.post("/messages/users", response_model = schema.Message)
-def create_message_for_user(message: schema.Message, db: Session = Depends(get_db)):
-    return crud.create_user_message(message = message, db = db)
+def create_message_for_user(message: schema.Message):
+    return crud.create_user_message(message = message)
 
 
 @app.get("/users/all", response_model=List[schema.User])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_users(skip: int = 0, limit: int = 100):
     print('todos', flush = True)
-    users = crud.get_users(db, skip=skip, limit=limit)    
+    users = crud.get_users(skip=skip, limit=limit)    
     return users
 
 
 @app.get("/users/", response_model=schema.User)
-def read_user(user_id: Optional[int] = None, user_nick: Optional[str] = None, db: Session = Depends(get_db)):
+def read_user(user_id: Optional[int] = None, user_nick: Optional[str] = None):
     if (user_id is None) and (user_nick is not None):
         print("pelo nick", flush = True)
-        return read_user_by_nick(user_nick = user_nick, db = db)
+        return read_user_by_nick(user_nick = user_nick)
 
     elif (user_nick is None) and (user_id is not None):
         print("pelo id", flush = True)
-        return read_user_by_id(user_id= user_id, db = db)
+        return read_user_by_id(user_id= user_id)
 
     else:
         raise HTTPException(status_code = 500, detail = "Internal Server Error")
 
 
 @app.get("/messages/", response_model=List[schema.Message])
-def read_messages(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    messages = crud.get_messages(db, skip = skip, limit = limit)
+def read_messages(skip: int = 0, limit: int = 100):
+    messages = crud.get_messages(skip = skip, limit = limit)
     return messages
