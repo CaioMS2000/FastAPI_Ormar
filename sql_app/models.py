@@ -1,6 +1,7 @@
 import sqlalchemy
 import databases
 import ormar
+from typing import Optional
 from ormar import property_field
 from datetime import  datetime
 from .database import database, metadata
@@ -25,14 +26,14 @@ class User(ormar.Model):
 class Message(ormar.Model):
     class Meta(MetaMeta):
         tablename: str = "messages"
-        constraints = [ormar.UniqueColumns("id"), ormar.IndexColumns("id", "owner_id")]
+        constraints = [ormar.UniqueColumns("id"), ormar.IndexColumns("id")]
     
     id: int = ormar.Integer(primary_key=True)
     content: str = ormar.String(max_length=500)
     sent_date: datetime = ormar.DateTime(default = datetime.now)
     deleted: bool = ormar.Boolean(default = False)
-    owner:Optional[User] = ormar.ForeignKey(User)
-    owner_id: int = ormar.Integer(default = owner.id | None)
+    owner: Optional[User] = ormar.ForeignKey(User)
+    # owner_id: int = ormar.Integer(default = owner.id | None)
 
     @property_field
     def num_char(self):
