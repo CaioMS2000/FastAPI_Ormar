@@ -5,11 +5,14 @@ from ormar import property_field
 from datetime import  datetime
 from .database import database, metadata
 
+class MetaMeta():
+    database = database
+    metadata = metadata
+
+
 class User(ormar.Model):
-    class Meta:
+    class Meta(MetaMeta):
         tablename: str = "users"
-        database = database
-        metadata = metadata
         constraints = [ormar.UniqueColumns("id", "nickname"), ormar.IndexColumns("id", "nickname")]
     
     id: int = ormar.Integer(primary_key=True)
@@ -20,18 +23,16 @@ class User(ormar.Model):
 
 
 class Message(ormar.Model):
-    class Meta:
+    class Meta(MetaMeta):
         tablename: str = "messages"
-        database = database
-        metadata = metadata
         constraints = [ormar.UniqueColumns("id"), ormar.IndexColumns("id", "owner_id")]
     
     id: int = ormar.Integer(primary_key=True)
     content: str = ormar.String(max_length=500)
     sent_date: datetime = ormar.DateTime(default = datetime.now)
     deleted: bool = ormar.Boolean(default = False)
-    owner:User = ormar.ForeignKey(User)
-    owner_id: int = ormar.Integer()
+    owner:Optional[User] = ormar.ForeignKey(User)
+    owner_id: int = ormar.Integer(default = owner.id | None)
 
     @property_field
     def num_char(self):
