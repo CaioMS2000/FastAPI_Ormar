@@ -20,3 +20,4 @@ connection_str = f'mysql+pymysql://{db_user}:{db_pwd}@{db_host}:{db_port}/{db_na
 
 database = databases.Database(connection_str)
 metadata = sqlalchemy.MetaData()
+engine = sqlalchemy.create_engine(connection_str)
