@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, List
 import ormar
 from . import models, schemas
-import services.user
+import services.user as S_user
 
 # print('', flush = True)
 # getters
@@ -44,9 +44,9 @@ async def create_user(user: schemas.User):
     return res
 
 
-async def create_user_message(message: schemas.Message):
-    db_message = models.Message(
-        content=message.content, owner_id=message.owner_id)
+async def create_user_message(message: schemas.Message, owner_id: id):
+    user = get_user(owner_id)
+    db_message = models.Message(content=message.content, owner=user)
     # res: models.Message | None = await db_message.save()
     res: models.Message | None = await db_message.obsjects.create(content=message.content)
     print('criou uma mensagem:\n{}\n'.format(res), flush=True)
