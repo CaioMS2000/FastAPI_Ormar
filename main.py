@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from typing import Optional, List
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +9,7 @@ import sql_app.models as model
 import sql_app.schemas as schema
 import sql_app.database as database
 import sql_app.crud as crud
-
+from WebSocket.connection import manager
 
 # source ./venv/bin/activate && uvicorn main:app --reload
 # ./venv/Scripts/activate && uvicorn main:app --reload
@@ -63,32 +63,54 @@ async def create_user(user: schema.User):
 @app.post("/messages/users", response_model=model.Message)
 async def create_message_for_user(message: schema.Message):
     res = await crud.create_user_message(message=message)
-    print(f'{type(res)}')
+    if res == None:
+        raise HTTPException(status_code=400, detail="User doesn't exists")
     return res
 
 
 @app.get("/users/all", response_model=List[schema.User])
 async def read_users(skip: int = 0, limit: int = 100):
-    print('todos', flush=True)
-    users = crud.get_users(skip=skip, limit=limit)
+    users = await crud.get_users(skip=skip, limit=limit)
     return users
 
 
 @app.get("/users/", response_model=schema.User)
 async def read_user(user_id: Optional[int] = None, user_nick: Optional[str] = None):
     if (user_id is None) and (user_nick is not None):
-        print("pelo nick", flush=True)
-        return await read_user_by_nick(user_nick=user_nick)
+        return await crud.get_user_by_nick(nick=user_nick)
 
     elif (user_nick is None) and (user_id is not None):
-        print("pelo id", flush=True)
-        return await read_user_by_id(user_id=user_id)
+        return await crud.get_user(user_id=user_id)
 
     else:
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-@app.get("/messages/", response_model=List[schema.Message])
+@app.get("/messages/", response_model=List[model.Message])
 async def read_messages(skip: int = 0, limit: int = 100):
     messages = await crud.get_messages(skip=skip, limit=limit)
     return messages
+
+
+# @app.websocket("/ws")
+# async def websocket_endpoint(websocket: WebSocket):
+#     await websocket.accept()
+#     while True:
+#         data = await websocket.receive_text()
+#         await websocket.send_text(f"Message text was: {data}")
+
+
+@app.websocket("/ws/{client_id}")
+async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.send_personal_message(f"You wrote: {data}", websocket)
+            await manager.broadcast(f"Client #{client_id} says: {data}")
+
+    except WebSocketDisconnect:
+
+        manager.disconnect(websocket)
+
+        await manager.broadcast(f"Client #{client_id} left the chat")
