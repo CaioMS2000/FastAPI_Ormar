@@ -102,7 +102,9 @@ async def read_messages(skip: int = 0, limit: int = 100):
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
+    print(f'client with the following ID conected\n{client_id}\n', flush=True)
     await manager.connect(websocket)
+    print(f'total connecions\n{len(manager.active_connections)}\n', flush=True)
     try:
         while True:
             data = await websocket.receive_text()
