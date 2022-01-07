@@ -4,12 +4,13 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
+import json
 
 import sql_app.models as model
 import sql_app.schemas as schema
 import sql_app.database as database
 import sql_app.crud as crud
-from WebSocket.connection import manager
+from WebSocket.connection import manager, generate_id
 
 # source ./venv/bin/activate && uvicorn main:app --reload
 # ./venv/Scripts/activate && uvicorn main:app --reload
@@ -92,27 +93,14 @@ async def read_messages(skip: int = 0, limit: int = 100):
     return messages
 
 
-# @app.websocket("/ws")
-# async def websocket_endpoint(websocket: WebSocket):
-#     await websocket.accept()
-#     while True:
-#         data = await websocket.receive_text()
-#         await websocket.send_text(f"Message text was: {data}")
-
-
-@app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    print(f'client with the following ID conected\n{client_id}\n', flush=True)
+@app.websocket("/ws/")
+async def websocket_endpoint(websocket: WebSocket, client_id: str = generate_id()):
     await manager.connect(websocket)
-    print(f'total connecions\n{len(manager.active_connections)}\n', flush=True)
     try:
         while True:
             data = await websocket.receive_text()
-            await manager.send_personal_message(f"You wrote: {data}", websocket)
-            await manager.broadcast(f"Client #{client_id} says: {data}")
+            await manager.broadcast(data, websocket)
 
     except WebSocketDisconnect:
 
         manager.disconnect(websocket)
-
-        await manager.broadcast(f"Client #{client_id} left the chat")

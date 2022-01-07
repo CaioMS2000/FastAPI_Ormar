@@ -47,5 +47,4 @@ async def create_user_message(message: schemas.Message):
         return None
     res: models.Message = await models.Message.objects.create(content=message.content, owner=user)
     print(f'\n\ncreate message\ntype: {type(res)}\n\n')
-    await manager.broadcast(message.content)
     return res
