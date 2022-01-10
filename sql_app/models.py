@@ -31,10 +31,10 @@ class Message(ormar.Model):
         constraints = [ormar.UniqueColumns("id"), ormar.IndexColumns("id")]
 
     id: int = ormar.Integer(primary_key=True)
+    owner = ormar.ForeignKey(User)
     content: str = ormar.String(max_length=500)
     sent_date: datetime = ormar.DateTime(default=datetime.now)
     deleted: bool = ormar.Boolean(default=False)
-    owner = ormar.ForeignKey(User)
     # owner: Optional[User] = ormar.ForeignKey(User)
     # owner_id: int = ormar.Integer(default = owner.id | None)
 

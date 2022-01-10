@@ -19,15 +19,19 @@ class ConnectionManager:
     async def send_personal_message(self, message: str, websocket: WebSocket):
         await websocket.send_text(message)
 
+    # async def broadcast(self, message, websocket: WebSocket):
+    #     print(f'broadcast', flush=True)
+    #     cont = 0
+    #     for connection in self.active_connections:
+    #         print(f'for do broadcast', flush=True)
+    #         if connection is not websocket and connection is not self:
+    #             cont = cont + 1
+    #             print(f'cont: {cont}\nvai enviar\n{message}\n', flush=True)
+    #             await connection.send_text(message)
+
     async def broadcast(self, message, websocket: WebSocket):
-        print(f'broadcast', flush=True)
-        cont = 0
         for connection in self.active_connections:
-            print(f'for do broadcast', flush=True)
-            if connection is not websocket and connection is not self:
-                cont = cont + 1
-                print(f'cont: {cont}\nvai enviar\n{message}\n', flush=True)
-                await connection.send_text(message)
+            await connection.send_text(message)
 
 
 def generate_id():

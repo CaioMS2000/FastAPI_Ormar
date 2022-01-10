@@ -94,7 +94,8 @@ async def read_messages(skip: int = 0, limit: int = 100):
 
 
 @app.websocket("/ws/")
-async def websocket_endpoint(websocket: WebSocket, client_id: str = generate_id()):
+# async def websocket_endpoint(websocket: WebSocket, client_id: str = generate_id()):
+async def websocket_endpoint(websocket: WebSocket, client_id: str = Depends(generate_id)):
     await manager.connect(websocket)
     try:
         while True:
