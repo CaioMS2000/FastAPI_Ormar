@@ -14,6 +14,7 @@ from WebSocket.connection import manager, generate_id
 
 # source ./venv/bin/activate && uvicorn main:app --reload
 # ./venv/Scripts/activate && uvicorn main:app --reload
+# ./venv/Scripts/activate; uvicorn main:app --reload
 # Response Model
 # skiped: CORS; Bigger Applications - Multiple Files
 
