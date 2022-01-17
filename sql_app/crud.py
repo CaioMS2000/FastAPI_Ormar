@@ -1,7 +1,6 @@
 from typing import Optional, List
 import ormar
 from . import models, schemas
-import services.user as S_user
 from WebSocket.connection import manager
 
 # print('', flush = True)
