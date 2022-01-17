@@ -1,5 +1,4 @@
 from typing import Optional, List
-import ormar
 from . import models, schemas
 from WebSocket.connection import manager
 
@@ -20,13 +19,13 @@ async def get_user_by_nick(nick: str):
     return res
 
 
-async def get_users(skip: int = 0, limit: int = 100):
+async def get_users():
     res: List[Optional[models.User]] = await models.User.objects.all()
     print(f'\n\nget all users\ntype: {type(res)}\n\n')
     return res
 
 
-async def get_messages(skip: int = 0, limit: int = 100):
+async def get_messages():
     res: List[Optional[models.Message]] = await models.Message.objects.all()
     print(f'\n\nget all messages\ntype: {type(res)}\n\n')
     return res

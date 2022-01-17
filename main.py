@@ -1,22 +1,18 @@
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from typing import Optional, List
-from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from datetime import datetime
-import json
+import fastapi.security as security
 
 import sql_app.models as model
 import sql_app.schemas as schema
 import sql_app.database as database
+import sql_app.services as services
 import sql_app.crud as crud
 from WebSocket.connection import manager, generate_id
 
 # source ./venv/bin/activate && uvicorn main:app --reload
 # ./venv/Scripts/activate && uvicorn main:app --reload
 # ./venv/Scripts/activate; uvicorn main:app --reload
-# Response Model
-# skiped: CORS; Bigger Applications - Multiple Files
 
 # model.Base.metadata.create_all(bind=engine)
 
@@ -59,11 +55,14 @@ async def create_user(user: schema.User):
     if db_user != None:
         raise HTTPException(status_code=400, detail="Nick already registered")
 
-    return await crud.create_user(user=user)
+    db_user = await crud.create_user(user=user)
+    token = await services.create_token(db_user)
+    # return db_user
+    return token
 
 
 @app.post("/messages/users", response_model=model.Message)
-async def create_message_for_user(message: schema.Message):
+async def create_message_for_user(message: schema.Message, user: schema.User = Depends(services.get_current_user)):
     res = await crud.create_user_message(message=message)
     if res == None:
         raise HTTPException(status_code=400, detail="User doesn't exists")
@@ -71,13 +70,16 @@ async def create_message_for_user(message: schema.Message):
 
 
 @app.get("/users/all", response_model=List[schema.User])
-async def read_users(skip: int = 0, limit: int = 100):
-    users = await crud.get_users(skip=skip, limit=limit)
+async def read_users(user: schema.User = Depends(services.get_current_user)):
+    users = await crud.get_users()
     return users
 
 
 @app.get("/users/", response_model=schema.User)
-async def read_user(user_id: Optional[int] = None, user_nick: Optional[str] = None):
+async def read_user(user_id: Optional[int] = None, user_nick: Optional[str] = None, user: schema.User = Depends(services.get_current_user)):
+    await services.get_current_user()
+    print('acabou o services', flush=True)
+
     if (user_id is None) and (user_nick is not None):
         return await crud.get_user_by_nick(nick=user_nick)
 
@@ -88,9 +90,14 @@ async def read_user(user_id: Optional[int] = None, user_nick: Optional[str] = No
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
+@app.get("/users/me", response_model=schema.User)
+async def read_user(user: schema.User = Depends(services.get_current_user)):
+    return user
+
+
 @app.get("/messages/", response_model=List[model.Message])
-async def read_messages(skip: int = 0, limit: int = 100):
-    messages = await crud.get_messages(skip=skip, limit=limit)
+async def read_messages(user: schema.User = Depends(services.get_current_user)):
+    messages = await crud.get_messages()
     return messages
 
 
@@ -106,3 +113,15 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str = Depends(gene
     except WebSocketDisconnect:
 
         manager.disconnect(websocket)
+
+
+@app.post("/api/token")
+async def generate_token(
+    form_data: security.OAuth2PasswordRequestForm = Depends()
+):
+    user = await services.authenticate_user(form_data.username, form_data.password)
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid Credentials")
+
+    return await services.create_token(user)
