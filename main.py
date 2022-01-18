@@ -48,7 +48,7 @@ async def shutdown() -> None:
         await database_.disconnect()
 
 
-@app.post("/users/", response_model=schema.User)
+@app.post("/users/")
 async def create_user(user: schema.User):
     db_user = await crud.get_user_by_nick(nick=user.nickname)
 
@@ -77,8 +77,6 @@ async def read_users(user: schema.User = Depends(services.get_current_user)):
 
 @app.get("/users/", response_model=schema.User)
 async def read_user(user_id: Optional[int] = None, user_nick: Optional[str] = None, user: schema.User = Depends(services.get_current_user)):
-    await services.get_current_user()
-    print('acabou o services', flush=True)
 
     if (user_id is None) and (user_nick is not None):
         return await crud.get_user_by_nick(nick=user_nick)
