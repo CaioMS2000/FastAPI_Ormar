@@ -18,6 +18,7 @@ db_name = config.get('database')
 
 # connection_str = f'mysql+pymysql://{db_user}:{db_pwd}@{db_host}:{db_port}/{db_name}'
 connection_str = f'sqlite:///./database.db'
+connection_str = f'mysql://zp3dtdcvamb8q9az:ryrfis37bzow9fbi@d6rii63wp64rsfb5.cbetxkdyhwsb.us-east-1.rds.amazonaws.com:3306/j1kx10jepegkf2gs'
 
 database = databases.Database(connection_str)
 metadata = sqlalchemy.MetaData()
